@@ -5,29 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clock Star Game</title>
     <link rel="stylesheet" href="clock-star.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/screenfull.js/5.2.0/screenfull.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 </head>
 <body>
-    <h1>Clock Star Game</h1>
     <div id="canvas-container">
         <canvas id="star-canvas"></canvas>
     </div>
-    <div id="controls">
-        <label for="points">Number of Points:</label>
-        <input type="range" id="points" name="points" min="4" max="32" value="16" step="2">
-        <span id="points-value">16</span>
+    <div id="ui-container">
+        <div id="controls" class="panel">
+            <label for="points">Number of Points:</label>
+            <input type="range" id="points" name="points" min="4" max="32" value="16" step="2">
+            <span id="points-value">16</span>
 
-        <label for="speed">Speed:</label>
-        <input type="range" id="speed" name="speed" min="1" max="100" value="25">
-        <span id="speed-value">25</span>
+            <label for="speed">Speed:</label>
+            <input type="range" id="speed" name="speed" min="1" max="100" value="25">
+            <span id="speed-value">25</span>
 
-        <button id="start-stop">Start</button>
-
-        <div id="dark-mode-toggle" class="toggle-container">
-            <span class="sun">☀️</span>
-            <span class="moon">🌙</span>
+            <button id="start-stop" onclick="App.toggleAnimation()">Start</button>
         </div>
-        <div id="color-toggle" class="toggle-container">
-            <span>🎨</span>
+        <div id="settings" class="panel">
+            <div id="dark-mode-toggle" class="toggle-container">
+                <span class="sun">☀️</span>
+                <span class="moon">🌙</span>
+            </div>
+            <div id="color-toggle" class="toggle-container">
+                <span>🎨</span>
+            </div>
+            <div id="highlight-toggle" class="toggle-container">
+                <span>🎯</span>
+            </div>
+            <button id="fullscreen-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
         </div>
     </div>
     <script src="clock-star.js"></script>

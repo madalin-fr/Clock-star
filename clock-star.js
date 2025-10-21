@@ -1,207 +1,285 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const canvas = document.getElementById('star-canvas');
-    const ctx = canvas.getContext('2d');
+const App = {
+        // STATE: Centralized application state
+        state: {
+            numPoints: 16,
+            speed: 25,
+            isRunning: false,
+            isDarkMode: false,
+            attractorColor: 'blue',
+            uiVisible: true,
+            uiTimeout: null,
+            highlightNextPoint: true,
+        },
 
-    const controls = document.getElementById('controls');
-    const pointsSlider = document.getElementById('points');
-    const pointsValue = document.getElementById('points-value');
-    const speedSlider = document.getElementById('speed');
-    const speedValue = document.getElementById('speed-value');
-    const startStopButton = document.getElementById('start-stop');
-    const darkModeToggle = document.getElementById('dark-mode-toggle');
+        // CACHE: DOM element references
+        cache: {},
 
-    let numPoints = parseInt(pointsSlider.value, 10);
-    let speed = parseInt(speedSlider.value, 10);
-    let isRunning = false;
-    let currentPoint = 0;
-    let nextPoint = 1; // Start with a defined next point
-    let animationFrameId;
-    let lastUpdateTime = 0;
-    // Speed calculation using a logarithmic scale for a more natural feel
-    const minInterval = 4000; // Slowest speed (ms per transition)
-    const maxInterval = 250;  // Fastest speed (ms per transition)
+        // INITIALIZATION
+        init() {
+            this.cacheElements();
+            this.bindEvents();
+            this.resizeCanvas();
+            this.updateUI();
+            this.showUITemporarily();
+        },
 
-    function calculateInterval(sliderValue) {
-        const minSlider = parseInt(speedSlider.min, 10);
-        const maxSlider = parseInt(speedSlider.max, 10);
+        cacheElements() {
+            this.cache.canvas = document.getElementById('star-canvas');
+            this.cache.ctx = this.cache.canvas.getContext('2d');
+            this.cache.uiContainer = document.getElementById('ui-container');
+            this.cache.pointsSlider = document.getElementById('points');
+            this.cache.pointsValue = document.getElementById('points-value');
+            this.cache.speedSlider = document.getElementById('speed');
+            this.cache.speedValue = document.getElementById('speed-value');
+            this.cache.startStopButton = document.getElementById('start-stop');
+            this.cache.darkModeToggle = document.getElementById('dark-mode-toggle');
+            this.cache.colorToggle = document.getElementById('color-toggle');
+            this.cache.highlightToggle = document.getElementById('highlight-toggle');
+            this.cache.fullscreenButton = document.getElementById('fullscreen-button');
+        },
 
-        const logMin = Math.log(minInterval);
-        const logMax = Math.log(maxInterval);
+        bindEvents() {
+            window.addEventListener('resize', () => this.resizeCanvas());
+            document.addEventListener('mousemove', () => this.showUITemporarily());
 
-        const scale = (logMax - logMin) / (maxSlider - minSlider);
+            this.cache.pointsSlider.addEventListener('input', e => this.updateState({ numPoints: parseInt(e.target.value, 10) }));
+            this.cache.speedSlider.addEventListener('input', e => this.updateState({ speed: parseInt(e.target.value, 10) }));
 
-        return Math.exp(logMin + scale * (sliderValue - minSlider));
-    }
+            this.cache.uiContainer.addEventListener('click', e => {
+                setTimeout(() => {
+                    const target = e.target;
+                    const button = target.closest('button');
+                    const toggle = target.closest('.toggle-container');
 
-    let interval = calculateInterval(speed);
+                    if (button) {
+                        switch (button.id) {
+                            case 'fullscreen-button':
+                                this.toggleFullscreen();
+                                break;
+                        }
+                    } else if (toggle) {
+                        switch (toggle.id) {
+                            case 'dark-mode-toggle':
+                                this.toggleDarkMode();
+                                break;
+                            case 'color-toggle':
+                                this.cycleAttractorColor();
+                                break;
+                            case 'highlight-toggle':
+                                this.toggleHighlight();
+                                break;
+                        }
+                    }
+                }, 0);
+            });
+        },
 
-    // Attractor properties
-    let attractor = { x: 0, y: 0, progress: 0 };
+        // STATE MANAGEMENT
+        updateState(newState) {
+            Object.assign(this.state, newState);
+            this.updateUI();
+            this.draw();
+        },
 
-    function getPointCoordinates(index, centerX, centerY, radius) {
-        const angle = (index / numPoints) * 2 * Math.PI - Math.PI / 2;
-        const x = centerX + radius * Math.cos(angle);
-        const y = centerY + radius * Math.sin(angle);
-        return { x, y };
-    }
+        // UI LOGIC
+        updateUI() {
+            // Sliders and values
+            this.cache.pointsSlider.value = this.state.numPoints;
+            this.cache.pointsValue.textContent = this.state.numPoints;
+            this.cache.speedSlider.value = this.state.speed;
+            this.cache.speedValue.textContent = this.state.speed;
+            const isRunning = this.state.isRunning;
+            this.cache.pointsSlider.disabled = isRunning;
+            this.cache.speedSlider.disabled = isRunning;
+            this.cache.darkModeToggle.style.pointerEvents = isRunning ? 'none' : 'auto';
 
-    function resizeCanvas() {
-        const size = Math.min(window.innerWidth, window.innerHeight) * 0.8;
-        canvas.width = size;
-        canvas.height = size;
-        draw();
-    }
 
-    function drawStar(centerX, centerY, radius) {
-        const points = [];
-        for (let i = 0; i < numPoints; i++) {
-            points.push(getPointCoordinates(i, centerX, centerY, radius));
-        }
+            // Start/Stop button
+            this.cache.startStopButton.textContent = isRunning ? 'Stop' : 'Start';
 
-        ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#666' : '#ccc'; // Lighter color for the star lines
-        ctx.lineWidth = 0.5;
+            // Dark mode
+            document.body.classList.toggle('dark-mode', this.state.isDarkMode);
 
-        for (let i = 0; i < numPoints; i++) {
-            for (let j = i + 1; j < numPoints; j++) {
-                if (i !== j) {
+            // UI Visibility
+            document.body.classList.toggle('ui-visible', this.state.uiVisible);
+        },
+
+        showUITemporarily() {
+            if (!this.state.uiVisible) {
+                this.updateState({ uiVisible: true });
+            }
+            clearTimeout(this.state.uiTimeout);
+            this.state.uiTimeout = setTimeout(() => this.updateState({ uiVisible: false }), 3000);
+        },
+
+        toggleDarkMode() {
+            this.updateState({ isDarkMode: !this.state.isDarkMode });
+        },
+        
+        cycleAttractorColor() {
+            const colors = ['#3498db', '#2ecc71', '#9b59b6', '#e67e22', '#e74c3c'];
+            const currentIndex = colors.indexOf(this.state.attractorColor);
+            const nextColor = colors[(currentIndex + 1) % colors.length];
+            this.updateState({ attractorColor: nextColor });
+        },
+
+        toggleFullscreen() {
+            if (screenfull.isEnabled) {
+                screenfull.toggle();
+            }
+        },
+
+        toggleHighlight() {
+            this.updateState({ highlightNextPoint: !this.state.highlightNextPoint });
+        },
+
+        // UTILITIES
+        nextTick(callback) {
+            requestAnimationFrame(() => requestAnimationFrame(callback));
+        },
+
+        // CANVAS & DRAWING
+        resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            this.cache.canvas.width = window.innerWidth * dpr;
+            this.cache.canvas.height = window.innerHeight * dpr;
+            this.cache.ctx.scale(dpr, dpr);
+            this.draw();
+        },
+
+        getPointCoordinates(index, centerX, centerY, radius) {
+            const angle = (index / this.state.numPoints) * 2 * Math.PI - Math.PI / 2;
+            return {
+                x: centerX + radius * Math.cos(angle),
+                y: centerY + radius * Math.sin(angle),
+            };
+        },
+
+        draw() {
+            const { ctx, canvas } = this.cache;
+            const { numPoints, isRunning, isDarkMode } = this.state;
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) * 0.4;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw star lines
+            ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+            ctx.lineWidth = 1;
+            const points = Array.from({ length: numPoints }, (_, i) => this.getPointCoordinates(i, centerX, centerY, radius));
+            for (let i = 0; i < numPoints; i++) {
+                for (let j = i + 1; j < numPoints; j++) {
                     ctx.beginPath();
                     ctx.moveTo(points[i].x, points[i].y);
                     ctx.lineTo(points[j].x, points[j].y);
                     ctx.stroke();
                 }
             }
-        }
 
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+            // Draw points and numbers
+            for (let i = 0; i < numPoints; i++) {
+                const textRadius = radius * 1.15;
+                const { x, y } = this.getPointCoordinates(i, centerX, centerY, textRadius);
+                
+                if (this.state.highlightNextPoint && isRunning && this.animation && i === this.animation.nextPoint) {
+                    ctx.fillStyle = 'red';
+                    ctx.font = 'bold 20px Arial';
+                } else {
+                    ctx.fillStyle = isDarkMode ? '#f0f0f0' : '#000';
+                    ctx.font = '16px Arial';
+                }
 
-        for (let i = 0; i < numPoints; i++) {
-            const textRadius = radius * 1.15;
-            const { x, y } = getPointCoordinates(i, centerX, centerY, textRadius);
-            
-            // Highlight the next point
-            if (isRunning && i === nextPoint) {
-                ctx.fillStyle = 'red';
-                ctx.font = 'bold 24px Arial';
-            } else {
-                ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#f0f0f0' : '#000';
-                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(i + 1, x, y);
             }
-            ctx.fillText(i + 1, x, y);
-        }
-    }
-
-    function draw() {
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = Math.min(centerX, centerY) * 0.8;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawStar(centerX, centerY, radius);
-        drawAttractor(centerX, centerY, radius);
-    }
-
-    function drawAttractor(centerX, centerY, radius) {
-        if (!isRunning) return;
-
-        const startCoords = getPointCoordinates(currentPoint, centerX, centerY, radius);
-        const endCoords = getPointCoordinates(nextPoint, centerX, centerY, radius);
-
-        // Linear interpolation
-        attractor.x = startCoords.x + (endCoords.x - startCoords.x) * attractor.progress;
-        attractor.y = startCoords.y + (endCoords.y - startCoords.y) * attractor.progress;
-
-        ctx.fillStyle = attractor.color || 'blue';
-        ctx.beginPath();
-        ctx.arc(attractor.x, attractor.y, 10, 0, 2 * Math.PI);
-        ctx.fill();
-    }
-
-    function animate(timestamp) {
-        if (!isRunning) return;
-
-        if (!lastUpdateTime) {
-            lastUpdateTime = timestamp;
-        }
-        const deltaTime = timestamp - lastUpdateTime;
-        lastUpdateTime = timestamp;
-
-        // Update attractor progress
-        const progressIncrement = (deltaTime / interval);
-        attractor.progress += progressIncrement;
-
-        if (attractor.progress >= 1) {
-            attractor.progress %= 1; // Carry over excess progress
-            currentPoint = nextPoint;
             
-            // Pick a new random next point, different from the current one
+            // Draw attractor if running
+            if (this.animation && this.animation.attractor) {
+                this.drawAttractor(this.animation.attractor);
+            }
+        },
+        
+        drawAttractor(attractor) {
+            const { ctx } = this.cache;
+            ctx.fillStyle = this.state.attractorColor;
+            ctx.beginPath();
+            ctx.arc(attractor.x, attractor.y, 10, 0, 2 * Math.PI);
+            ctx.fill();
+        },
+
+        // ANIMATION
+        toggleAnimation() {
+            const wasRunning = this.state.isRunning;
+            this.updateState({ isRunning: !wasRunning });
+    
+            this.nextTick(() => {
+                if (!wasRunning) {
+                    this.startAnimation();
+                } else {
+                    this.stopAnimation();
+                }
+            });
+        },
+
+        startAnimation() {
+            const { numPoints } = this.state;
+            this.animation = {
+                currentPoint: 0,
+                nextPoint: Math.floor(Math.random() * (numPoints - 1)) + 1,
+                attractor: { x: 0, y: 0 },
+                timeline: gsap.timeline({ repeat: -1, onRepeat: () => this.chooseNextPoint() })
+            };
+            this.moveAttractor();
+        },
+        
+        stopAnimation() {
+            if (this.animation && this.animation.timeline) {
+                this.animation.timeline.kill();
+                this.animation = null;
+            }
+            this.draw(); // Redraw to remove attractor
+        },
+
+        chooseNextPoint() {
+            if (!this.animation) return;
             let newNextPoint;
             do {
-                newNextPoint = Math.floor(Math.random() * numPoints);
-            } while (newNextPoint === currentPoint);
-            nextPoint = newNextPoint;
+                newNextPoint = Math.floor(Math.random() * this.state.numPoints);
+            } while (newNextPoint === this.animation.currentPoint);
+            this.animation.currentPoint = this.animation.nextPoint;
+            this.animation.nextPoint = newNextPoint;
+            this.moveAttractor();
+        },
+
+        moveAttractor() {
+            const { canvas } = this.cache;
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) * 0.4;
+
+            const startCoords = this.getPointCoordinates(this.animation.currentPoint, centerX, centerY, radius);
+            const endCoords = this.getPointCoordinates(this.animation.nextPoint, centerX, centerY, radius);
+            
+            const speedFactor = 101 - this.state.speed; // Inverse relationship
+            const duration = (speedFactor / 100) * 4; // Scale to a reasonable duration range
+
+            this.animation.attractor.x = startCoords.x;
+            this.animation.attractor.y = startCoords.y;
+
+            this.animation.timeline.clear().to(this.animation.attractor, {
+                x: endCoords.x,
+                y: endCoords.y,
+                duration: duration,
+                ease: "power1.inOut",
+                onUpdate: () => this.draw()
+            });
         }
+    };
 
-        draw();
-        animationFrameId = requestAnimationFrame(animate);
-    }
-
-    function start() {
-        isRunning = true;
-        startStopButton.textContent = 'Stop';
-        pointsSlider.disabled = true;
-        lastUpdateTime = 0;
-        attractor.progress = 0;
-
-        // Set initial points
-        currentPoint = 0;
-        nextPoint = Math.floor(Math.random() * (numPoints - 1)) + 1;
-
-        animationFrameId = requestAnimationFrame(animate);
-    }
-
-    function stop() {
-        isRunning = false;
-        startStopButton.textContent = 'Start';
-        pointsSlider.disabled = false;
-        cancelAnimationFrame(animationFrameId);
-        draw(); // Redraw to remove attractor and highlights
-    }
-
-    startStopButton.addEventListener('click', () => {
-        if (isRunning) {
-            stop();
-        } else {
-            start();
-        }
-    });
-
-    pointsSlider.addEventListener('input', (e) => {
-        numPoints = parseInt(e.target.value, 10);
-        pointsValue.textContent = numPoints;
-        draw();
-    });
-
-    speedSlider.addEventListener('input', (e) => {
-        speed = parseInt(e.target.value, 10);
-        speedValue.textContent = speed;
-        interval = calculateInterval(speed);
-    });
-
-    document.addEventListener('mousedown', (e) => {
-        if (e.target.closest('#dark-mode-toggle')) {
-            document.body.classList.toggle('dark-mode');
-            draw();
-        } else if (e.target.closest('#color-toggle')) {
-            const colors = ['blue', 'green', 'purple', 'orange'];
-            const currentColorIndex = colors.indexOf(attractor.color);
-            attractor.color = colors[(currentColorIndex + 1) % colors.length];
-            draw();
-        }
-    });
-
-    window.addEventListener('resize', resizeCanvas);
-
-    resizeCanvas();
-});
+    App.init();
