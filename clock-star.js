@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let nextPoint = 1; // Start with a defined next point
     let animationFrameId;
     let lastUpdateTime = 0;
-    let interval = 60000 / 120; // Default interval for 120 BPM
+    let interval = 60000 / speed; // Set interval based on initial speed
 
     // Attractor properties
     let attractor = { x: 0, y: 0, progress: 0 };
@@ -103,14 +103,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function animate(timestamp) {
         if (!isRunning) return;
 
+        if (!lastUpdateTime) {
+            lastUpdateTime = timestamp;
+        }
         const deltaTime = timestamp - lastUpdateTime;
-        
+        lastUpdateTime = timestamp;
+
         // Update attractor progress
         const progressIncrement = (deltaTime / interval);
         attractor.progress += progressIncrement;
 
         if (attractor.progress >= 1) {
-            attractor.progress = 0;
+            attractor.progress %= 1; // Carry over excess progress
             currentPoint = nextPoint;
             
             // Pick a new random next point, different from the current one
@@ -119,8 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 newNextPoint = Math.floor(Math.random() * numPoints);
             } while (newNextPoint === currentPoint);
             nextPoint = newNextPoint;
-            
-            lastUpdateTime = timestamp; // Reset timer for the new interval
         }
 
         draw();
@@ -131,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isRunning = true;
         startStopButton.textContent = 'Stop';
         pointsSlider.disabled = true;
-        lastUpdateTime = performance.now();
+        lastUpdateTime = 0;
         attractor.progress = 0;
 
         // Set initial points
