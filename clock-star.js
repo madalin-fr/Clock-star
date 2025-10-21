@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const speedSlider = document.getElementById('speed');
     const speedValue = document.getElementById('speed-value');
     const startStopButton = document.getElementById('start-stop');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
 
     let numPoints = parseInt(pointsSlider.value, 10);
     let speed = parseInt(speedSlider.value, 10);
@@ -56,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             points.push(getPointCoordinates(i, centerX, centerY, radius));
         }
 
-        ctx.strokeStyle = '#ccc'; // Lighter color for the star lines
+        ctx.strokeStyle = document.body.classList.contains('dark-mode') ? '#666' : '#ccc'; // Lighter color for the star lines
         ctx.lineWidth = 0.5;
 
         for (let i = 0; i < numPoints; i++) {
@@ -83,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fillStyle = 'red';
                 ctx.font = 'bold 24px Arial';
             } else {
-                ctx.fillStyle = '#000';
+                ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#f0f0f0' : '#000';
                 ctx.font = '20px Arial';
             }
             ctx.fillText(i + 1, x, y);
@@ -185,6 +186,11 @@ document.addEventListener('DOMContentLoaded', () => {
         speed = parseInt(e.target.value, 10);
         speedValue.textContent = speed;
         interval = calculateInterval(speed);
+    });
+
+    darkModeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        draw();
     });
 
     window.addEventListener('resize', resizeCanvas);

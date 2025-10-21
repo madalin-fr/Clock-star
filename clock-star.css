@@ -22,3 +22,29 @@ h1 {
     border: 1px solid #000;
     background-color: #fff;
 }
+.toggle-container {
+    cursor: pointer;
+    font-size: 1.5rem;
+}
+
+.moon {
+    display: none;
+}
+
+body.dark-mode .sun {
+    display: none;
+}
+
+body.dark-mode .moon {
+    display: inline;
+}
+
+body.dark-mode {
+    background-color: #333;
+    color: #f0f0f0;
+}
+
+body.dark-mode #star-canvas {
+    background-color: #444;
+    border-color: #fff;
+}
