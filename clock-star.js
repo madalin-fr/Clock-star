@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         attractor.x = startCoords.x + (endCoords.x - startCoords.x) * attractor.progress;
         attractor.y = startCoords.y + (endCoords.y - startCoords.y) * attractor.progress;
 
-        ctx.fillStyle = 'blue';
+        ctx.fillStyle = attractor.color || 'blue';
         ctx.beginPath();
         ctx.arc(attractor.x, attractor.y, 10, 0, 2 * Math.PI);
         ctx.fill();
@@ -192,6 +192,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousedown', (e) => {
         if (e.target.closest('#dark-mode-toggle')) {
             document.body.classList.toggle('dark-mode');
+            draw();
+        } else if (e.target.closest('#color-toggle')) {
+            const colors = ['blue', 'green', 'purple', 'orange'];
+            const currentColorIndex = colors.indexOf(attractor.color);
+            attractor.color = colors[(currentColorIndex + 1) % colors.length];
             draw();
         }
     });
