@@ -11,11 +11,24 @@ h1 {
     margin: 1rem;
 }
 
+#canvas-container {
+    position: relative;
+}
+
 #controls {
-    margin-bottom: 1rem;
+    background-color: #fff;
+    padding: 1rem;
+    border-top: 1px solid #ccc;
     display: flex;
     align-items: center;
     gap: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+body.dark-mode #controls {
+    background-color: #333;
+    border-top-color: #666;
 }
 
 #star-canvas {
