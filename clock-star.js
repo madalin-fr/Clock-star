@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('star-canvas');
     const ctx = canvas.getContext('2d');
 
+    const controls = document.getElementById('controls');
     const pointsSlider = document.getElementById('points');
     const pointsValue = document.getElementById('points-value');
     const speedSlider = document.getElementById('speed');
@@ -188,9 +189,11 @@ document.addEventListener('DOMContentLoaded', () => {
         interval = calculateInterval(speed);
     });
 
-    darkModeToggle.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
-        draw();
+    document.addEventListener('mousedown', (e) => {
+        if (e.target.closest('#dark-mode-toggle')) {
+            document.body.classList.toggle('dark-mode');
+            draw();
+        }
     });
 
     window.addEventListener('resize', resizeCanvas);
