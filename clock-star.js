@@ -15,7 +15,23 @@ document.addEventListener('DOMContentLoaded', () => {
     let nextPoint = 1; // Start with a defined next point
     let animationFrameId;
     let lastUpdateTime = 0;
-    let interval = 60000 / speed; // Set interval based on initial speed
+    // Speed calculation using a logarithmic scale for a more natural feel
+    const minInterval = 4000; // Slowest speed (ms per transition)
+    const maxInterval = 250;  // Fastest speed (ms per transition)
+
+    function calculateInterval(sliderValue) {
+        const minSlider = parseInt(speedSlider.min, 10);
+        const maxSlider = parseInt(speedSlider.max, 10);
+
+        const logMin = Math.log(minInterval);
+        const logMax = Math.log(maxInterval);
+
+        const scale = (logMax - logMin) / (maxSlider - minSlider);
+
+        return Math.exp(logMin + scale * (sliderValue - minSlider));
+    }
+
+    let interval = calculateInterval(speed);
 
     // Attractor properties
     let attractor = { x: 0, y: 0, progress: 0 };
@@ -168,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     speedSlider.addEventListener('input', (e) => {
         speed = parseInt(e.target.value, 10);
         speedValue.textContent = speed;
-        interval = 60000 / speed;
+        interval = calculateInterval(speed);
     });
 
     window.addEventListener('resize', resizeCanvas);
