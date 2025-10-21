@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock Star Game</title>
+    <link rel="stylesheet" href="clock-star.css">
+</head>
+<body>
+    <h1>Clock Star Game</h1>
+    <div id="controls">
+        <label for="points">Number of Points:</label>
+        <input type="range" id="points" name="points" min="4" max="32" value="16" step="2">
+        <span id="points-value">16</span>
+
+        <label for="speed">Speed (BPM):</label>
+        <input type="range" id="speed" name="speed" min="30" max="240" value="120">
+        <span id="speed-value">120</span>
+
+        <button id="start-stop">Start</button>
+    </div>
+    <canvas id="star-canvas"></canvas>
+    <script src="clock-star.js"></script>
+</body>
+</html>
