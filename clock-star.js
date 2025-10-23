@@ -62,12 +62,6 @@ const App = {
                             case 'dark-mode-toggle':
                                 this.toggleDarkMode();
                                 break;
-                            case 'color-toggle':
-                                this.cycleAttractorColor();
-                                break;
-                            case 'highlight-toggle':
-                                this.toggleHighlight();
-                                break;
                         }
                     }
                 }, 0);
